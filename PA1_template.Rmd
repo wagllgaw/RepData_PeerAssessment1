@@ -1,25 +1,93 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research - Peer Assignment 1"
+output: html_document
 ---
 
+First we load in the data and convert to date:
 
-## Loading and preprocessing the data
+```{r} 
+  library(dplyr)
+  'Load in data'
+  activity <- read.csv(file = 'activity.csv', header = TRUE)
+  activity$date <- as.Date(activity$date, format = '%Y-%m-%d')
+```  
+  
+Question 1: What is the mean # of total steps taken per day
+
+```{r}  
+  total_steps <- summarize(group_by(activity, date), s = sum(steps, na.rm = TRUE))
+  
+  'Plot the histogram'
+  hist(total_steps$s)
+  
+  'Mean & Median of data'
+  steps_mean <- summarize(total_steps, mean(s))
+  steps_median <- summarize(total_steps, median(s))
+```
+
+Question 2: What is the average daily activity pattern?
+
+```{r}
+  'Processing of data'
+  steps_pattern <- summarize(group_by(activity, interval), 
+                             mean_Steps = mean(steps, na.rm = TRUE))
+  
+  'plot a line graph of the average day'
+  plot(steps_pattern, type = 'l')
+  
+  'find the interval where the avg steps is the greatest'
+  steps_pattern$interval[steps_pattern$mean_Steps == max(steps_pattern$mean_Steps, na.rm = TRUE)]
+```
+  
+
+Question 3: Imputing missing values
+
+1. How many rows have NA:
+```{r}
+  sum(is.na(activity$steps))
+```
+
+2. Strategy: Use the mean of the interval for each NA value
+
+3. Input the mean of the interval for each NA
+```{r}
+  j <- length(activity$steps)
+  new_Activity <- activity
+  for (i in which(is.na(activity$steps)))
+  {
+    new_Activity$steps[i] <- steps_pattern$mean_Steps[i]
+  }
+```
+
+4. Create a new histogram
+```{r}
+  new_steps <- summarize(group_by(new_Activity, date), s = sum(steps, na.rm = TRUE))
+  hist(new_steps$s)
+```
 
 
+Question 4: Are there differences in activity patterns between weekdays and weekends?
 
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+1. Create new factor with weekdays / weekends
+```{r}
+  
+  day <- weekdays(new_Activity$date)
+  week <- mutate(new_Activity, week = "")
+  
+  for (i in 1:length(day))
+  {
+    if(day[i] == 'Saturday' | day[i] == 'Sunday')
+      week$week[i] <- 'Weekend'
+    else
+      week$week[i] <- 'Weekday'
+  }
+```
+  
+2. Create the plots to determine differences  
+```{r}
+  
+  new_steps <- summarize(group_by(week, interval, week), s = sum(steps, na.rm = TRUE))
+  plot(new_steps$s[new_steps$week == 'Weekday'], type = 'l')
+  plot(new_steps$s[new_steps$week == 'Weekend'], type = 'l')
+```
+  
